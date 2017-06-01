@@ -1,0 +1,17 @@
+{
+	"name": "ee267",
+	"version": "1.0.0",
+	"description": "WebSocket communication for EE267 homework",
+	"dependencies": {
+		"serialport": "^4.0.7",
+		"socket.io": "^1.7.3",
+		"ws": "^2.0.3"
+	},
+	"devDependencies": {},
+	"repository": {
+		"type": "git"
+	},
+	"author": "Hayato Ikoma",
+	"license": "MIT",
+	"homepage": "https://stanford.edu/class/ee267/"
+}
