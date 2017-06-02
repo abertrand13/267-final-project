@@ -14,3 +14,18 @@ app.get('/', function(req, res) {
 app.listen(3000, function() {
     console.log('Listening on port 3000');
 });
+
+var net = require('net');
+
+var server = net.createServer(function(socket) {
+	socket.write('Echo server\r\n');
+	// socket.pipe(socket);
+	socket.on("data", function(data){
+		console.log(data.toString());
+	});
+});
+
+server.listen(3490, '127.0.0.1', function(){
+	console.log("listening on 3490");
+});
+
