@@ -88,6 +88,11 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	gridScene.add( grid );
 
+    
+    // add the waddle dee! 
+    var waddleDees = [];
+    addWaddleDee();
+
 
 	/* Scene swithcing system */
 	const TEAPOT_SCENE = 0;
@@ -175,6 +180,28 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 		}
 
+        /* UPDATE WADDLE DEE */
+        // consider moving this to the right structure (see render.js)
+        for(var i = 0;i < waddleDees.length; i++) {
+            var curr = waddleDees[i];
+            curr.obj.position.x += curr.vx;
+            curr.obj.position.y += curr.vy;
+            curr.obj.position.z += curr.vz;
+            if(Math.abs(curr.obj.position.x) > 200) {
+                curr.vx *= -1;
+            }
+
+            if(Math.abs(curr.obj.position.y) > 200) {
+                curr.vy *= -1;
+            }
+
+            if(Math.abs(curr.obj.position.z) > 200) {
+                curr.vz *= -1;
+            }
+
+        }
+
+
 		/**
 		 * This part is for rendering the axis, point lights and grid objects
 		 * with THREE's rendering pipeline by using the view and projection
@@ -229,26 +256,45 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 		 * Render the scene!
 		 * This part performs all renderings scheduled above on GPU.
 		 */
-	    console.log("here");	
         
         webglRenderer.render( scene, camera );
 
-        renderWaddleDee();
 	};
 
 
-    function renderWaddleDee() {
+    function addWaddleDee() {
         var mtlLoader = new THREE.MTLLoader();
-        mtlLoader.setPath( 'models/waddledee' );
+        mtlLoader.setPath( 'js/models/waddledee/' );
         mtlLoader.load( 'waddledee.mtl', function( materials ) {
             materials.preload();
             var objLoader = new THREE.OBJLoader();
             objLoader.setMaterials( materials );
-            objLoader.setPath( 'models/waddledee' );
+            objLoader.setPath( 'js/models/waddledee/' );
             objLoader.load( 'waddledee.obj', function ( object ) {
-                object.position.y = - 95;
-                scene.add( object );
-            }, onProgress, onError );
+                // object.position.y = -95;
+                // object.scale = new THREE.Vector3(4,4,4);
+                scene.add(object);
+                waddleDees.push({
+                    obj: object,
+                    vx: Math.random() * 5,
+                    vy: Math.random() * 5,
+                    vz: Math.random() * 5
+                });
+                // object.position.z = ;
+
+                /*object.traverse(function(child) {
+                    if(child instanceof THREE.Mesh) {
+                        child.material.map = THREE.ImageUtils.loadTexture('js/models/waddledee/t0011_0.png');
+                        child.material.needsUpdate = true;
+                    }
+                });*/
+                /*var texLoader = new THREE.TextureLoader();
+                texLoader.load('js/models/waddledee/t0011_0.png', function(texture) {
+                            console.log(object); 
+                            object.material.map = texture;
+                            scene.add( object );
+                        });*/
+            });
         });
     }
 
