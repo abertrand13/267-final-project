@@ -37,6 +37,10 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // for (int iterator_i = 0; iterator_i < 2; iterator_i++)
+    // {
+
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -76,17 +80,26 @@ int main(int argc, char *argv[])
 
     char *test = "this is a test message\n";
 
-    if ((numbytes = send(sockfd, test, strlen(test), 0)) == -1) {
+    uint8_t img_test[640*480];
+    memset(img_test, 100, 640*480);
+
+    if ((numbytes = send(sockfd, img_test, 640*480, 0)) == -1) {
+        perror("send");
+        exit(1);
+    }
+    send(sockfd, "\n", 1, 0);
+
+    printf("sent %d\n", numbytes);
+
+if ((numbytes = send(sockfd, img_test, 640*480, 0)) == -1) {
         perror("send");
         exit(1);
     }
 
-    printf("sent %s\n", test);
-    // buf[numbytes] = '\0';
+    send(sockfd, "\n", 1, 0);
 
-    // printf("client: received '%s'\n",buf);
 
     close(sockfd);
-
+	// }
     return 0;
 }

@@ -1,7 +1,10 @@
-const express = require('express');
-const path = require('path');
 
-const app = express();
+
+var express = require('express');
+var path = require('path');
+var split = require('split');
+
+var app = express();
 app.use("/css", express.static(__dirname + '/css'));
 app.use("/js", express.static(__dirname + '/js'));
 
@@ -15,14 +18,59 @@ app.listen(3000, function() {
     console.log('Listening on port 3000');
 });
 
+
+var WebSocketServer = require("ws").Server;
+var wss = new WebSocketServer( {port: 8081});
+var wssConnections = [];
+/* Event listner of the WebSocketServer.*/
+wss.on( "connection", function ( client ) {
+
+	console.log( "The browser is connected to the serial port." );
+
+	wssConnections.push( client );
+
+	client.on( "close", function () {
+
+		console.log( "The connection to the browser is closed." );
+
+		var idx = wssConnections.indexOf( client );
+
+		wssConnections.splice( idx, 1 );
+
+	} );
+
+} );
+
 var net = require('net');
 
+var bufs = []
 var server = net.createServer(function(socket) {
-	socket.write('Echo server\r\n');
-	// socket.pipe(socket);
-	socket.on("data", function(data){
-		console.log(data.toString());
+	var stream = socket.pipe(split());
+	stream.on("data", function(data){
+		// console.log(data);
+		// console.log(data.toString());
+		if (data.length > 0)
+		{
+			bufs.push(data);
+			console.log(data.length);
+
+			wssConnections.forEach( function ( socket ) {
+
+				socket.send(data);
+
+			} );
+		}
 	});
+
+	// stream.on("end", function() {
+	// 	var img = Buffer.concat(bufs);
+	// 	bufs = [];
+	// 	wssConnections.forEach( function ( socket ) {
+
+	// 		socket.send(img);
+
+	// 	} );
+	// });
 });
 
 server.listen(3490, '127.0.0.1', function(){
