@@ -79,17 +79,38 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	/* Create a scene that has only grid for unwarp-parameter search */
 	var gridScene = new THREE.Scene();
-
+	var testCamera = new THREE.Camera();
+	gridScene.background = new THREE.Color("gray");
 	var grid = new THREE.GridHelper( 500, 10, "white", "white" );
 
-	grid.material.linewidth = 3;
+	var dImage = new THREE.DataTexture(new Uint8Array(sc.state.depth_buffer), 640, 480, THREE.UnsignedByteType);
+	console.log(dImage);
+	var imageWidth = 640;
+	var imageHeight = 480;
 
-	grid.rotation.x = 90 * THREE.Math.DEG2RAD;
+	var testTexture = new THREE.WebGLRenderTarget(webglRenderer.getSize().width, webglRenderer.getSize().height, webglRenderer.getContextAttributes());
 
-	gridScene.add( grid );
+	var testUniforms = {
+		colorMap: {type: "t", value: dImage},
+	};
+	var testTextureMat = new THREE.ShaderMaterial({
+		uniforms: testUniforms,
+		// vertexShader: $( "#vShaderPassThrough" ).text(),
 
-    
-    // add the waddle dee! 
+		// fragmentShader: $( "#fShaderPassThrough" ).text(),
+	});
+	var testTextureGeo = new THREE.PlaneGeometry(imageWidth, imageHeight);
+	var testTextureMesh = new THREE.Mesh(testTextureGeo, testTextureMat);
+	testTextureMesh.position.z = -50;
+	gridScene.add(testTextureMesh);
+	// grid.material.linewidth = 3;
+
+	// grid.rotation.x = 90 * THREE.Math.DEG2RAD;
+
+	// // gridScene.add( grid );
+
+
+    // add the waddle dee!
     var waddleDees = [];
     addWaddleDee();
 
@@ -176,6 +197,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 			teapots[ i ].mesh.material.uniforms.
 				directionalLights.value = sc.state.lights.directionalLights;
 
+
 			teapots[ i ].updateShader( sc );
 
 		}
@@ -251,12 +273,16 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	this.render = function ( modelMat, viewMat, projectionMat ) {
 
 		updateUniforms( modelMat, viewMat, projectionMat );
-
+		// probably need to place the image texture here
+		testTextureMesh.material.uniforms.colorMap =
+			new THREE.DataTexture(new Uint8Array(sc.state.depth_buffer), 640, 480, THREE.UnsignedByteType);
+		// var depth_buffer = sc.state.depth_buffer;
+		testTextureMesh.material.needsUpdate = true;
 		/***
 		 * Render the scene!
 		 * This part performs all renderings scheduled above on GPU.
 		 */
-        
+
         webglRenderer.render( scene, camera );
 
 	};
@@ -290,7 +316,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
                 });*/
                 /*var texLoader = new THREE.TextureLoader();
                 texLoader.load('js/models/waddledee/t0011_0.png', function(texture) {
-                            console.log(object); 
+                            console.log(object);
                             object.material.map = texture;
                             scene.add( object );
                         });*/

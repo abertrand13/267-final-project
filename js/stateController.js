@@ -77,6 +77,8 @@ var StateController = function ( dispParams ) {
 
 		viewerQuaternion: new THREE.Quaternion(),
 
+		depth_buffer: [],
+
 	};
 
 	var state = this.state;
@@ -85,6 +87,7 @@ var StateController = function ( dispParams ) {
 
 	/* Initialize WebSocket */
 	var socket = new WebSocket( "ws://localhost:8081" );
+	socket.binaryType = "arraybuffer";
 
 	socket.onopen = function () {
 
@@ -106,22 +109,12 @@ var StateController = function ( dispParams ) {
 
 	};
 
-	socket.onmessage = function ( imu ) {
+	socket.onmessage = function ( data ) {
 
-		var data = imu.data.replace( /"/g, "" ).split( " " );
+			console.log( data );
+			state.depth_buffer = data.data;
 
-		if ( data[ 0 ] == "QC" ) {
 
-			/* data: QC q[0] q[1] q[2] q[3] */
-			state.viewerQuaternion.set(
-				Number( data[ 2 ] ), Number( data[ 3 ] ),
-			 	Number( data[ 4 ] ), Number( data[ 1 ] ) ).normalize();
-
-		} else {
-
-			console.log( "Invalid data..." );
-
-		}
 
 	};
 
