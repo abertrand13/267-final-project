@@ -43,20 +43,22 @@ wss.on( "connection", function ( client ) {
 
 var net = require('net');
 
-var bufs = []
+// var bufs = []
 var server = net.createServer(function(socket) {
+	socket.binaryType = "arraybuffer";
 	var stream = socket.pipe(split());
 	stream.on("data", function(data){
 		// console.log(data);
 		// console.log(data.toString());
 		if (data.length > 0)
 		{
-			bufs.push(data);
-			console.log(data.length);
-
+			// bufs.push(data);
+			var buf = Buffer.from(data.toString(), 'base64');
+			console.log(buf.toString())
+			console.log(buf.length);
 			wssConnections.forEach( function ( socket ) {
 
-				socket.send(data);
+				socket.send(buf);
 
 			} );
 		}
