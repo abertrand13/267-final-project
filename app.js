@@ -39,6 +39,7 @@ wss.on( "connection", function ( client ) {
 
 } );
 
+
 var net = require('net');
 
 // var bufs = []
@@ -52,11 +53,15 @@ var server = net.createServer(function(socket) {
 		{
 			// bufs.push(data);
 			var buf = Buffer.from(data.toString(), 'base64');
-			// console.log(buf.toString())
-			console.log(buf.length);
+		    console.log(buf.length);
+			
+			// after a looong time, lets just do a for loop amigos!!!!!!!!!!!!!!
+			var str="";
+			for (i = 0; i < buf.length; i++) {
+				str+=String.fromCharCode(buf[i]);
+			}
 			wssConnections.forEach( function ( socket ) {
-
-				socket.send(buf.toString());
+			socket.send(str);
 
 			} );
 		}

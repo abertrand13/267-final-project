@@ -301,7 +301,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     	if(sc.state.depth_buffer.length != 0 && sc.state.depthBufferUpdated) {
             var split = sc.state.depth_buffer.split("");
             var dataArray = Uint8Array.from(split.map(function(x) { return x.charCodeAt(0); }));
-
+		    //~ var dataArray = Uint8Array.from(sc.state.depth_buffer);
             const dataTexture2 = new THREE.DataTexture(
                 dataArray,
                 imageWidth,
