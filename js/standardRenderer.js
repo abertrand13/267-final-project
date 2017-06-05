@@ -83,6 +83,9 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	gridScene.background = new THREE.Color("gray");
 	var grid = new THREE.GridHelper( 500, 10, "white", "white" );
 
+    var light2 = new THREE.AmbientLight(0xffffff, .8);
+    light2.position.set(0,10,0);
+    gridScene.add(light2);
 	
     /* ALEX FUCKING AROUND HERE */ 
 	var imageWidth = 640;
@@ -109,6 +112,12 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     testTextureMesh.position.z = -50;
 	gridScene.add(testTextureMesh);
 
+    // add a light so you can see the waddle dees
+    var light = new THREE.AmbientLight(0xffffff, .8);
+    light.position.set(0,10,0);
+    teapotScene.add(light);
+
+        
     // add the waddle dees!
     var waddleDees = [];
     addWaddleDee();
@@ -141,6 +150,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 			}
 
 		}
+
+        if( e.which === 87 ) {
+            addWaddleDee();
+        }
 
 	} );
 
@@ -314,29 +327,14 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             objLoader.setMaterials( materials );
             objLoader.setPath( 'js/models/waddledee/' );
             objLoader.load( 'waddledee.obj', function ( object ) {
-                // object.position.y = -95;
-                // object.scale = new THREE.Vector3(4,4,4);
+                object.scale.set(3,3,3);
                 scene.add(object);
                 waddleDees.push({
                     obj: object,
-                    vx: Math.random() * 5,
-                    vy: Math.random() * 5,
-                    vz: Math.random() * 5
+                    vx: Math.random() * 3,
+                    vy: Math.random() * 3,
+                    vz: Math.random() * 3
                 });
-                // object.position.z = ;
-
-                /*object.traverse(function(child) {
-                    if(child instanceof THREE.Mesh) {
-                        child.material.map = THREE.ImageUtils.loadTexture('js/models/waddledee/t0011_0.png');
-                        child.material.needsUpdate = true;
-                    }
-                });*/
-                /*var texLoader = new THREE.TextureLoader();
-                texLoader.load('js/models/waddledee/t0011_0.png', function(texture) {
-                            console.log(object);
-                            object.material.map = texture;
-                            scene.add( object );
-                        });*/
             });
         });
     }

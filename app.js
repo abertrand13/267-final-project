@@ -52,11 +52,11 @@ var server = net.createServer(function(socket) {
 		{
 			// bufs.push(data);
 			var buf = Buffer.from(data.toString(), 'base64');
-			console.log(buf.toString())
+			// console.log(buf.toString())
 			console.log(buf.length);
 			wssConnections.forEach( function ( socket ) {
 
-				socket.send(buf);
+				socket.send(buf.toString());
 
 			} );
 		}
