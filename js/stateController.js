@@ -79,6 +79,8 @@ var StateController = function ( dispParams ) {
 
 		depth_buffer: [],
 
+        depthBufferUpdate: false
+
 	};
 
 	var state = this.state;
@@ -110,12 +112,8 @@ var StateController = function ( dispParams ) {
 	};
 
 	socket.onmessage = function ( data ) {
-
-			console.log( data );
 			state.depth_buffer = data.data;
-
-
-
+            state.depthBufferUpdated = true; 
 	};
 
 
