@@ -100,28 +100,21 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             THREE.UVMapping);
     dataTexture.needsUpdate = true;
 
-    var dataMaterial = new THREE.MeshBasicMaterial({
-        transparent: true,
+    var dataMaterial = new THREE.MeshBasicMaterial({ 
         map: dataTexture
     });
     dataMaterial.needsUpdate = true;
     
 	var testTextureGeo = new THREE.PlaneGeometry(imageWidth, imageHeight);
 	var testTextureMesh = new THREE.Mesh(testTextureGeo, dataMaterial);
-	
+    testTextureMesh.renderOrder = 0;
     testTextureMesh.position.z = -50;
 	gridScene.add(testTextureMesh);
 
     // add a light so you can see the waddle dees
     var light = new THREE.AmbientLight(0xffffff, .8);
     light.position.set(0,10,0);
-    teapotScene.add(light);
-
-        
-    // add the waddle dees!
-    var waddleDees = [];
-    addWaddleDee();
-
+    teapotScene.add(light); 
 
 	/* Scene swithcing system */
 	const TEAPOT_SCENE = 0;
@@ -132,7 +125,18 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	var sceneSwitcher = TEAPOT_SCENE;
 
-	$( "html" ).keydown( function ( e ) {
+    /*Adding in our stuff*/
+     
+    // Adding in the occluding blocks
+    addOccludingBlock();
+    
+    // add the waddle dees! 
+    var waddleDees = [];
+    addWaddleDee();
+
+    
+    
+    $( "html" ).keydown( function ( e ) {
 
 		/* Change the scene if space is pressed. */
 		if ( e.which === 32 ) {
@@ -153,6 +157,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
         if( e.which === 87 ) {
             addWaddleDee();
+            addOccludingBlock();
         }
 
 	} );
@@ -221,15 +226,15 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             curr.obj.position.x += curr.vx;
             curr.obj.position.y += curr.vy;
             curr.obj.position.z += curr.vz;
-            if(Math.abs(curr.obj.position.x) > 200) {
+            if(Math.abs(curr.obj.position.x) > 150) {
                 curr.vx *= -1;
             }
 
-            if(Math.abs(curr.obj.position.y) > 200) {
+            if(Math.abs(curr.obj.position.y) > 150) {
                 curr.vy *= -1;
             }
 
-            if(Math.abs(curr.obj.position.z) > 200) {
+            if(Math.abs(curr.obj.position.z) > 150) {
                 curr.vz *= -1;
             }
 
@@ -316,6 +321,16 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             sc.state.depthBufferUpdated = false;
         }
     }
+
+    function addOccludingBlock() {
+        var box = new THREE.BoxGeometry(100, 100, 1);
+        var mesh = new THREE.Mesh(box, new THREE.MeshBasicMaterial());
+        mesh.material.color.set(0x0000ff);
+        mesh.material.colorWrite = false; // make invisible
+        mesh.renderOrder = 2; // render before the waddle dees
+        mesh.position.z = 200;
+        scene.add(mesh);
+    }
     
     
     function addWaddleDee() {
@@ -328,12 +343,18 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             objLoader.setPath( 'js/models/waddledee/' );
             objLoader.load( 'waddledee.obj', function ( object ) {
                 object.scale.set(3,3,3);
+                for(var i = 0;i < object.children.length;i++) {
+                    object.children[i].renderOrder = 3;
+                }
                 scene.add(object);
                 waddleDees.push({
                     obj: object,
                     vx: Math.random() * 3,
                     vy: Math.random() * 3,
                     vz: Math.random() * 3
+                    /*vx: 0,
+                    vy: 0,
+                    vz: 0*/
                 });
             });
         });
