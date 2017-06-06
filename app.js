@@ -116,6 +116,7 @@ var server2 = net.createServer(function(socket) {
 				str+=String.fromCharCode(buf[i]);
 			}
 			wss2Connections.forEach( function ( socket ) {
+				console.log(str);
 			socket.send(str);
 
 			} );

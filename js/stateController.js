@@ -77,7 +77,11 @@ var StateController = function ( dispParams ) {
 
 		viewerQuaternion: new THREE.Quaternion(),
 
-		depth_buffer: [],
+		rgbBuffer: [],
+
+        rgbBufferUpdate: false,
+        
+        depthBuffer: [],
 
         depthBufferUpdate: false
 
@@ -114,9 +118,9 @@ var StateController = function ( dispParams ) {
 	};
 
 	socket.onmessage = function ( data ) {
-			state.depth_buffer = data.data;
-            state.depthBufferUpdated = true; 
-            console.log(data.data.length);
+			state.rgbBuffer = data.data;
+            state.rgbBufferUpdated = true; 
+            //~ console.log(data.data.length);
 	};
 
 
@@ -143,9 +147,15 @@ var StateController = function ( dispParams ) {
 	};
 
 	socket2.onmessage = function ( data ) {
-		console.log("here");
-			//~ state.depth_buffer = data.data;
-            //~ state.depthBufferUpdated = true; 
+			state.depthBuffer = data.data;
+			console.log(data.data);
+			//~ console.log(data.data.length);
+			//~ console.log(data.data);
+			//~ var split = state.depthBuffer.split("");
+            //~ var dataArray = Uint8Array.from(split.map(function(x) { return x.charCodeAt(0); }))
+            //~ state.depthBuffer = dataArray;
+            //~ console.log(dataArray);
+            state.depthBufferUpdated = true; 
 	};
 
 	/**

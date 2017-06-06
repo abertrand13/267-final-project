@@ -342,7 +342,7 @@ int main(int argc, char *argv[]) try
 	char *img_out = new char [640*640];
 
 
-	for (int test = 0; test<100; test++)
+	for (int test = 0; test<1; test++)
 	{
 		
 
@@ -405,17 +405,19 @@ int main(int argc, char *argv[]) try
 			send(sockfd2,"\n", 1, 0);
 			std::cout << "sent depth data" << std::endl;
 			
+			stbi_write_png("test_depth.png",
+            captured.intrinsics.width,captured.intrinsics.height,
+            1,
+            captured.frame_data,
+            captured.intrinsics.width  );
+			
 			
 			
 		}
 		
-		usleep(1000*250);
+		usleep(1000*100);
         
-        //~ stbi_write_png(ss.str().data(),
-            //~ captured.intrinsics.width,captured.intrinsics.height,
-            //~ components_map[captured.stream],
-            //~ captured.frame_data,
-            //~ captured.intrinsics.width * components_map[captured.stream] );
+        
     }
 		dev->wait_for_frames();
 	}

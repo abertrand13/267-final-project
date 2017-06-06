@@ -121,14 +121,16 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	const GRID_SCENE = 1;
 
-	var scene = teapotScene;
+	var scene = gridScene;
 
-	var sceneSwitcher = TEAPOT_SCENE;
+	var sceneSwitcher = GRID_SCENE;
 
     /*Adding in our stuff*/
      
     // Adding in the occluding blocks
-    addOccludingBlock();
+    //~ addOccludingBlock();
+    var occludingBlocks = [];
+    addBlocksToScene();
     
     // add the waddle dees! 
     var waddleDees = [];
@@ -234,7 +236,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
                 curr.vy *= -1;
             }
 
-            if(Math.abs(curr.obj.position.z) > 150) {
+            if(Math.abs(curr.obj.position.z) > 150 || curr.obj.position.z < 0) {
                 curr.vz *= -1;
             }
 
@@ -292,6 +294,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 		updateUniforms( modelMat, viewMat, projectionMat );
 	
         updateDataTexture();
+        updateDepthArray();
         
 		/***
 		 * Render the scene!
@@ -303,10 +306,9 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	};
 
     function updateDataTexture() {
-    	if(sc.state.depth_buffer.length != 0 && sc.state.depthBufferUpdated) {
-            var split = sc.state.depth_buffer.split("");
+    	if(sc.state.rgbBuffer.length != 0 && sc.state.rgbBufferUpdated) {
+            var split = sc.state.rgbBuffer.split("");
             var dataArray = Uint8Array.from(split.map(function(x) { return x.charCodeAt(0); }));
-		    //~ var dataArray = Uint8Array.from(sc.state.depth_buffer);
             const dataTexture2 = new THREE.DataTexture(
                 dataArray,
                 imageWidth,
@@ -318,9 +320,47 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
             dataMaterial.map = dataTexture2;
             testTextureMesh.material.needsUpdate = true;
-            sc.state.depthBufferUpdated = false;
+            sc.state.rgbBufferUpdated = false;
         }
     }
+    
+    
+ 
+    
+    function averageDepthValues(x, y, dataArray) {
+		var sum = 0;
+		for (var i = 0; i < 24; i++) {
+			for (var j = 0; j < 32; j++) {
+				sum += dataArray[y*32 + x*24+ j + 24*i];
+			}
+		}
+		
+		//~ console.log(sum);
+		//~ console.log(sum);
+		return sum / (24*32);
+	}
+    
+    function updateDepthArray() {
+		if (sc.state.depthBuffer.length != 0 && sc.state.depthBufferUpdated) {
+			var split = sc.state.depthBuffer.split("");
+			
+            var dataArray = Uint8Array.from(split.map(function(x) {return x.charCodeAt(0); }))
+			//~ var depthArray = new Uint8Array(400);
+			for (var i = 0; i < 20; i++)
+			{
+				for (var j = 0; j < 20; j++)
+				{
+					var thisBlock = occludingBlocks[i*20 + j];
+					thisBlock.position.z = -2*averageDepthValues(i, j, dataArray) + 50;
+					//~ console.log(thisBlock.position.z);
+					//~ console.log(thisBlock.position.z);
+					thisBlock.needsUpdate = true;
+				}
+			}
+			sc.state.depthBufferUpdated = false;
+		}
+		
+	}
 
     function addOccludingBlock() {
         var box = new THREE.BoxGeometry(100, 100, 1);
@@ -332,6 +372,32 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
         scene.add(mesh);
     }
     
+    
+    function addOccludingBlockCoords(x, y, z) {
+        var box = new THREE.BoxGeometry(32, 24, 1);
+        var mesh = new THREE.Mesh(box, new THREE.MeshBasicMaterial());
+        mesh.material.color.set(0x0000ff);
+        //~ mesh.material.colorWrite = false; // make invisible
+        mesh.renderOrder = 2; // render before the waddle dees
+        mesh.position.x = x;
+        mesh.position.y = y;
+        mesh.position.z = z;
+        occludingBlocks.push(mesh);
+        scene.add(mesh);
+    }
+    
+    function addBlocksToScene() {
+		for (var i = 0; i < 20; i++)
+		{
+			for (var j = 0; j < 20; j++)
+			{
+				addOccludingBlockCoords(j*32 - 320, i*24-240, 0);
+			}
+		}
+		
+	}
+	
+   
     
     function addWaddleDee() {
         var mtlLoader = new THREE.MTLLoader();
@@ -351,7 +417,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
                     obj: object,
                     vx: Math.random() * 3,
                     vy: Math.random() * 3,
-                    vz: Math.random() * 3
+                    vz: Math.random() * 5
                     /*vx: 0,
                     vy: 0,
                     vz: 0*/
