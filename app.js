@@ -69,28 +69,26 @@ wss2.on( "connection", function ( client ) {
 
 var net = require('net');
 
-// var bufs = []
+var rgbBufs = [];
+var rgbLen = 0;
 var server = net.createServer(function(socket) {
 	socket.binaryType = "arraybuffer";
-	var stream = socket.pipe(split());
-	stream.on("data", function(data){
-		// console.log(data);
-		// console.log(data.toString());
+	//~ var stream = socket.pipe(split());
+	socket.on("data", function(data){
+		
 		if (data.length > 0)
 		{
-			// bufs.push(data);
-			var buf = Buffer.from(data.toString(), 'base64');
-		    console.log("rgb", buf.length);
 			
-			// lets just do a for loop amigos!!!!!!!!!!!!!!
-			var str="";
-			for (i = 0; i < buf.length; i++) {
-				str+=String.fromCharCode(buf[i]);
+			rgbLen += data.length;
+			rgbBufs.push(data);
+			if (rgbLen > 480*640*3) {
+				
+				wssConnections.forEach( function ( socket ) {
+					socket.send(Buffer.concat(rgbBufs, 480*640*3));
+					rgbBufs = [];
+					rgbLen = 0;
+				} );
 			}
-			wssConnections.forEach( function ( socket ) {
-			socket.send(str);
-
-			} );
 		}
 	});
 
@@ -98,29 +96,32 @@ var server = net.createServer(function(socket) {
 
 
 
-
+var depthBufs = [];
 var server2 = net.createServer(function(socket) {
 	socket.binaryType = "arraybuffer";
-	var stream = socket.pipe(split());
-	stream.on("data", function(data){
+	//~ var stream = socket.pipe(split());
+	var totalLength = 0;
+	socket.on("data", function(data){
 		//~ console.log(data);
+		
+		
 		
 		if (data.length > 0)
 		{
-			// bufs.push(data);
-			var buf = Buffer.from(data.toString(), 'base64');
-		    console.log("depth", buf.length);
-			
-			// lets just do a for loop amigos!!!!!!!!!!!!!!
-			var str="";
-			for (i = 0; i < buf.length; i++) {
-				str+=String.fromCharCode(buf[i]);
-			}
-			wss2Connections.forEach( function ( socket ) {
-				//~ console.log(str);
-			socket.send(str);
+			totalLength += data.length;
+			depthBufs.push(data);
+			//~ console.log(data.length);
+			if (totalLength > 640*480) {
+				
+				wss2Connections.forEach( function ( socket ) {
+					
+					socket.send(Buffer.concat(depthBufs, 640*480));
+					depthBufs = [];
+					totalLength = 0;
 
-			} );
+
+				} );
+			}
 		}
 	});
 

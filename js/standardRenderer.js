@@ -316,9 +316,12 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	};
 
     function updateDataTexture() {
-    	if(sc.state.rgbBuffer.length != 0 && sc.state.rgbBufferUpdated) {
-            var split = sc.state.rgbBuffer.split("");
-            var dataArray = Uint8Array.from(split.map(function(x) { return x.charCodeAt(0); }));
+    	if(sc.state.rgbBuffer.byteLength != 0 && sc.state.rgbBufferUpdated) {
+            //~ var split = sc.state.rgbBuffer.split("");
+            var dataArray = new Uint8Array(sc.state.rgbBuffer);
+            //~ console.log("data arryay length", dataArray.length);
+            //~ console.log("data arrya byte length", dataArray.byteLength);
+            //~ console.log("data raarrya buffer", dataArray.buffer);
             const dataTexture2 = new THREE.DataTexture(
                 dataArray,
                 imageWidth,
@@ -354,9 +357,9 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     
     function updateDepthArray() {
 		if (sc.state.depthBuffer.length != 0 && sc.state.depthBufferUpdated) {
-			var split = sc.state.depthBuffer.split("");
+			//~ var split = sc.state.depthBuffer.split("");
 			
-            var dataArray = Uint8Array.from(split.map(function(x) {return x.charCodeAt(0); }))
+            var dataArray = new Uint8Array(sc.state.depthBuffer);
 			//~ var depthArray = new Uint8Array(400);
 			for (var i = 0; i < coarseness; i++)
 			{

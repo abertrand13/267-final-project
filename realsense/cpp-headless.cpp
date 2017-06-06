@@ -342,7 +342,7 @@ int main(int argc, char *argv[]) try
 	char *img_out = new char [640*640];
 
 
-	for (int test = 0; test<1; test++)
+	for (int test = 0; test<500; test++)
 	{
 		
 
@@ -381,11 +381,11 @@ int main(int argc, char *argv[]) try
 			//~ {
 				//~ img_test[i] = 3 % 255;
 			//~ }
-			base64_encode_block((const char *)captured.frame_data,640*480*3, (char*)img_out_rgb, &b64_state);
+			//~ base64_encode_block((const char *)captured.frame_data,640*480*3, (char*)img_out_rgb, &b64_state);
 			//~ base64_encode_block((const char *)img_test,640*480*3, (char*)img_out, &b64_state);
 
 			//~ std::cout << "encoded data" << std::endl;
-			if ((numbytes = send(sockfd, img_out_rgb, 4*640*480, 0)) == -1) {
+			if ((numbytes = send(sockfd, captured.frame_data, 3*640*480, 0)) == -1) {
 				perror("send");
 				exit(1);
 			}
@@ -396,9 +396,9 @@ int main(int argc, char *argv[]) try
 		{
 			base64_encodestate b64_state;
 			base64_init_encodestate(&b64_state);
-			base64_encode_block((const char *)captured.frame_data,640*480, (char*)img_out, &b64_state);
+			//~ base64_encode_block((const char *)captured.frame_data,640*480, (char*)img_out, &b64_state);
 			//~ std::cout << "encoded data" << std::endl;
-			if ((numbytes = send(sockfd2, img_out, 640*640, 0)) == -1) {
+			if ((numbytes = send(sockfd2, captured.frame_data, 640*480, 0)) == -1) {
 				perror("send");
 				exit(1);
 			}
@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) try
 			
 		}
 		
-		usleep(1000*250);
+		usleep(1000*75);
         
         
     }
