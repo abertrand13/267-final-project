@@ -147,8 +147,10 @@ var StateController = function ( dispParams ) {
 	};
 
 	socket2.onmessage = function ( data ) {
+			//~ console.log(data);
+			
 			state.depthBuffer = data.data;
-			console.log(data.data);
+			//~ console.log(data.data);
 			//~ console.log(data.data.length);
 			//~ console.log(data.data);
 			//~ var split = state.depthBuffer.split("");

@@ -103,6 +103,7 @@ var server2 = net.createServer(function(socket) {
 	socket.binaryType = "arraybuffer";
 	var stream = socket.pipe(split());
 	stream.on("data", function(data){
+		//~ console.log(data);
 		
 		if (data.length > 0)
 		{
@@ -116,7 +117,7 @@ var server2 = net.createServer(function(socket) {
 				str+=String.fromCharCode(buf[i]);
 			}
 			wss2Connections.forEach( function ( socket ) {
-				console.log(str);
+				//~ console.log(str);
 			socket.send(str);
 
 			} );

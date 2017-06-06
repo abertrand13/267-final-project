@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) try
 			
 		}
 		
-		usleep(1000*100);
+		usleep(1000*250);
         
         
     }

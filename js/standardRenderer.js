@@ -31,7 +31,7 @@
  */
 var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
-
+	
 	/***
 	 * THREE.Scene and THREE.Camera are reuired for rendering with Three.js.
 	 * THREE.Camera instance is generally used for computing and parsing view
@@ -90,6 +90,11 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     /* ALEX FUCKING AROUND HERE */ 
 	var imageWidth = 640;
 	var imageHeight = 480;
+	
+	var coarseness = 20;
+	var blockWidth = imageWidth / coarseness;
+	var blockHeight = imageHeight / coarseness; 
+	
     var temp = Array(640*480*3).fill(0);
     var dataTexture = new THREE.DataTexture(
             Uint8Array.from(temp),
@@ -108,7 +113,8 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	var testTextureGeo = new THREE.PlaneGeometry(imageWidth, imageHeight);
 	var testTextureMesh = new THREE.Mesh(testTextureGeo, dataMaterial);
     testTextureMesh.renderOrder = 0;
-    testTextureMesh.position.z = -50;
+    testTextureMesh.position.z = -250;
+    console.log(testTextureMesh.position);
 	gridScene.add(testTextureMesh);
 
     // add a light so you can see the waddle dees
@@ -131,7 +137,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     //~ addOccludingBlock();
     var occludingBlocks = [];
     addBlocksToScene();
-    
+	console.log(occludingBlocks);
     // add the waddle dees! 
     var waddleDees = [];
     addWaddleDee();
@@ -161,6 +167,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             addWaddleDee();
             addOccludingBlock();
         }
+        
+        if (e.which === 84) {
+			toggleBlue();
+		}
 
 	} );
 
@@ -228,15 +238,15 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             curr.obj.position.x += curr.vx;
             curr.obj.position.y += curr.vy;
             curr.obj.position.z += curr.vz;
-            if(Math.abs(curr.obj.position.x) > 150) {
+            if(Math.abs(curr.obj.position.x) > 320) {
                 curr.vx *= -1;
             }
 
-            if(Math.abs(curr.obj.position.y) > 150) {
+            if(Math.abs(curr.obj.position.y) > 240) {
                 curr.vy *= -1;
             }
 
-            if(Math.abs(curr.obj.position.z) > 150 || curr.obj.position.z < 0) {
+            if(Math.abs(curr.obj.position.z) > 250 || curr.obj.position.z > 0) {
                 curr.vz *= -1;
             }
 
@@ -323,20 +333,22 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             sc.state.rgbBufferUpdated = false;
         }
     }
-    
-    
+   	
+	
  
+
     
     function averageDepthValues(x, y, dataArray) {
 		var sum = 0;
 		for (var i = 0; i < 24; i++) {
 			for (var j = 0; j < 32; j++) {
-				sum += dataArray[y*32 + x*24+ j + 24*i];
+				// this is wrong
+				sum += 4*dataArray[y*32 + x*24+ j + 24*i];
 			}
 		}
 		
 		//~ console.log(sum);
-		//~ console.log(sum);
+		console.log(sum/(24*32));
 		return sum / (24*32);
 	}
     
@@ -346,13 +358,15 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 			
             var dataArray = Uint8Array.from(split.map(function(x) {return x.charCodeAt(0); }))
 			//~ var depthArray = new Uint8Array(400);
-			for (var i = 0; i < 20; i++)
+			for (var i = 0; i < coarseness; i++)
 			{
-				for (var j = 0; j < 20; j++)
+				for (var j = 0; j < coarseness; j++)
 				{
-					var thisBlock = occludingBlocks[i*20 + j];
-					thisBlock.position.z = -2*averageDepthValues(i, j, dataArray) + 50;
-					//~ console.log(thisBlock.position.z);
+					var thisBlock = occludingBlocks[i*coarseness + j];
+					//~ thisBlock.position.z = 2*(65-averageDepthValues(i, j, dataArray)) -45;
+					var centerDepth = dataArray[i*blockHeight*imageWidth + blockHeight/2*imageWidth + j*blockWidth + blockWidth/2];
+					thisBlock.position.z = (centerDepth == 0) ? -250 : (centerDepth < 30) ? -200 : -250;
+					//~ console.log("z pos", thisBlock.position.z);
 					//~ console.log(thisBlock.position.z);
 					thisBlock.needsUpdate = true;
 				}
@@ -374,10 +388,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     
     
     function addOccludingBlockCoords(x, y, z) {
-        var box = new THREE.BoxGeometry(32, 24, 1);
+        var box = new THREE.BoxGeometry(blockWidth, blockHeight, 1);
         var mesh = new THREE.Mesh(box, new THREE.MeshBasicMaterial());
         mesh.material.color.set(0x0000ff);
-        //~ mesh.material.colorWrite = false; // make invisible
+        mesh.material.colorWrite = false; // make invisible
         mesh.renderOrder = 2; // render before the waddle dees
         mesh.position.x = x;
         mesh.position.y = y;
@@ -387,17 +401,33 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     }
     
     function addBlocksToScene() {
-		for (var i = 0; i < 20; i++)
+		for (var i = 0; i < coarseness; i++)
 		{
-			for (var j = 0; j < 20; j++)
+			for (var j = 0; j < coarseness; j++)
 			{
-				addOccludingBlockCoords(j*32 - 320, i*24-240, 0);
+				addOccludingBlockCoords(j*blockWidth - imageWidth/2, i*blockHeight-imageHeight/2, -250);
 			}
 		}
 		
 	}
 	
-   
+      function toggleBlue () {
+		for (var i = 0; i < coarseness; i++)
+			{
+				for (var j = 0; j < coarseness; j++)
+				{
+					var thisBlock = occludingBlocks[i*coarseness + j];
+					thisBlock.material.colorWrite = !thisBlock.material.colorWrite;
+					thisBlock.material.needsUpdate = true;
+					//~ thisBlock.position.z = 2*(65-averageDepthValues(i, j, dataArray)) -45;
+					//~ console.log("z pos", thisBlock.position.z);
+					//~ console.log(thisBlock.position.z);
+					//~ thisBlock.needsUpdate = true;
+				}
+			} 
+		
+	}
+    
     
     function addWaddleDee() {
         var mtlLoader = new THREE.MTLLoader();
@@ -408,6 +438,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             objLoader.setMaterials( materials );
             objLoader.setPath( 'js/models/waddledee/' );
             objLoader.load( 'waddledee.obj', function ( object ) {
+				object.position.z = -225;
                 object.scale.set(3,3,3);
                 for(var i = 0;i < object.children.length;i++) {
                     object.children[i].renderOrder = 3;
@@ -417,7 +448,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
                     obj: object,
                     vx: Math.random() * 3,
                     vy: Math.random() * 3,
-                    vz: Math.random() * 5
+                    vz: 0//Math.random() * 5
                     /*vx: 0,
                     vy: 0,
                     vz: 0*/
