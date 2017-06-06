@@ -342,7 +342,7 @@ int main(int argc, char *argv[]) try
 	char *img_out = new char [640*640];
 
 
-	for (int test = 0; test<500; test++)
+	for (int test = 0; test<2000; test++)
 	{
 		
 
@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) try
 			
 		}
 		
-		usleep(1000*75);
+		//~ usleep(1000*75);
         
         
     }

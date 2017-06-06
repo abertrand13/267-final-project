@@ -87,7 +87,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     light2.position.set(0,10,0);
     gridScene.add(light2);
 	
-    /* ALEX FUCKING AROUND HERE */ 
+    /* ALEX  AROUND HERE */ 
 	var imageWidth = 640;
 	var imageHeight = 480;
 	
@@ -163,10 +163,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 		}
 
-        if( e.which === 87 ) {
-            addWaddleDee();
-            addOccludingBlock();
-        }
+        //~ if( e.which === 87 ) {
+            //~ addWaddleDee();
+            //~ addOccludingBlock();
+        //~ }
         
         if (e.which === 84) {
 			toggleBlue();
@@ -368,7 +368,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 					var thisBlock = occludingBlocks[i*coarseness + j];
 					//~ thisBlock.position.z = 2*(65-averageDepthValues(i, j, dataArray)) -45;
 					var centerDepth = dataArray[i*blockHeight*imageWidth + blockHeight/2*imageWidth + j*blockWidth + blockWidth/2];
-					thisBlock.position.z = (centerDepth == 0) ? -250 : (centerDepth < 30) ? -200 : -250;
+					thisBlock.position.z = (centerDepth == 0) ? -250 : (centerDepth < 30) ? -240 : -250;
 					//~ console.log("z pos", thisBlock.position.z);
 					//~ console.log(thisBlock.position.z);
 					thisBlock.needsUpdate = true;
@@ -408,7 +408,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 		{
 			for (var j = 0; j < coarseness; j++)
 			{
-				addOccludingBlockCoords(j*blockWidth - imageWidth/2, i*blockHeight-imageHeight/2, -250);
+				addOccludingBlockCoords(j*blockWidth - imageWidth/2 + blockWidth/2, i*blockHeight-imageHeight/2 + blockHeight/2, -250);
 			}
 		}
 		
@@ -441,8 +441,8 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
             objLoader.setMaterials( materials );
             objLoader.setPath( 'js/models/waddledee/' );
             objLoader.load( 'waddledee.obj', function ( object ) {
-				object.position.z = -225;
-                object.scale.set(3,3,3);
+				object.position.z = -245;
+                object.scale.set(3,3,.25);
                 for(var i = 0;i < object.children.length;i++) {
                     object.children[i].renderOrder = 3;
                 }
