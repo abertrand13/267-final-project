@@ -146,6 +146,27 @@ int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 
 
 
+//~ void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], int width, int height)
+//~ {
+    //~ for (int i = 0; i < width * height; ++i)
+    //~ {
+        //~ if (auto d = depth_image[i])
+        //~ {
+            //~ uint8_t v = d * 255 / std::numeric_limits<uint16_t>::max();
+            //~ rgb_image[i*3 + 0] = 255 - v;
+            //~ rgb_image[i*3 + 1] = 255 - v;
+            //~ rgb_image[i*3 + 2] = 255 - v;
+        //~ }
+        //~ else
+        //~ {
+            //~ rgb_image[i*3 + 0] = 0;
+            //~ rgb_image[i*3 + 1] = 0;
+            //~ rgb_image[i*3 + 2] = 0;
+        //~ }
+    //~ }
+//~ }
+
+
 void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], int width, int height)
 {
     for (int i = 0; i < width * height; ++i)
@@ -153,15 +174,15 @@ void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], i
         if (auto d = depth_image[i])
         {
             uint8_t v = d * 255 / std::numeric_limits<uint16_t>::max();
-            rgb_image[i*3 + 0] = 255 - v;
-            rgb_image[i*3 + 1] = 255 - v;
-            rgb_image[i*3 + 2] = 255 - v;
+            rgb_image[i + 0] = v;
+            //~ rgb_image[i*3 + 1] = 255 - v;
+            //~ rgb_image[i*3 + 2] = 255 - v;
         }
         else
         {
-            rgb_image[i*3 + 0] = 0;
-            rgb_image[i*3 + 1] = 0;
-            rgb_image[i*3 + 2] = 0;
+            rgb_image[i + 0] = 0;
+            //~ rgb_image[i*3 + 1] = 0;
+            //~ rgb_image[i*3 + 2] = 0;
         }
     }
 }
@@ -199,7 +220,7 @@ int main(int argc, char *argv[]) try
 {
 	
 	
-    int sockfd, numbytes;
+    int sockfd, numbytes, sockfd2;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
@@ -208,7 +229,7 @@ int main(int argc, char *argv[]) try
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(argv[1], "3490", &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -223,6 +244,45 @@ int main(int argc, char *argv[]) try
 
         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
+            perror("client: connect");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to connect\n");
+        return 2;
+    }
+
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+            s, sizeof s);
+    printf("client: connecting to %s\n", s);
+
+    freeaddrinfo(servinfo); // all done with this structure
+    
+    // ====
+    
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((rv = getaddrinfo(argv[1], "3491", &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd2 = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+
+        if (connect(sockfd2, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd2);
             perror("client: connect");
             continue;
         }
@@ -277,6 +337,11 @@ int main(int argc, char *argv[]) try
     /* Capture 30 frames to give autoexposure, etc. a chance to settle */
     for (int i = 0; i < 30; ++i) dev->wait_for_frames();
 
+
+	char *img_out_rgb = new char [640*480*4];
+	char *img_out = new char [640*640];
+
+
 	for (int test = 0; test<100; test++)
 	{
 		
@@ -286,9 +351,9 @@ int main(int argc, char *argv[]) try
     for (auto & stream_record : supported_streams)
         stream_record.frame_data = const_cast<uint8_t *>((const uint8_t*)dev->get_frame_data(stream_record.stream));
 
-    /* Transform Depth range map into color map */
+    /* Transform Depth range map into uint8 map */
     stream_record depth = supported_streams[(int)rs::stream::depth];
-    std::vector<uint8_t> coloredDepth(depth.intrinsics.width * depth.intrinsics.height * components_map[depth.stream]);
+    std::vector<uint8_t> coloredDepth(depth.intrinsics.width * depth.intrinsics.height);
 
     /* Encode depth data into color image */
     normalize_depth_to_rgb(coloredDepth.data(), (const uint16_t *)depth.frame_data, depth.intrinsics.width, depth.intrinsics.height);
@@ -296,40 +361,54 @@ int main(int argc, char *argv[]) try
     /* Update captured data */
     supported_streams[(int)rs::stream::depth].frame_data = coloredDepth.data();
 
+	
     /* Store captured frames into current directory */
     for (auto & captured : supported_streams)
     {
 					std::stringstream ss;
+					
 
 		if (captured.stream == rs::stream::color){
 			
 			
 			base64_encodestate b64_state;
 			base64_init_encodestate(&b64_state);
-			ss << "cpp-headless-output-" << captured.stream << ".png";
-
-			std::cout << "Writing " << ss.str().data() << ", " << captured.intrinsics.width << " x " << captured.intrinsics.height << " pixels"   << std::endl;
-						std::cout <<  640*480*4;
-			char *img_out = new char [640*480*4];
+			
+			
 			//~ const uint8_t *test = (const uint8_t *) captured.frame_data;
-			std::cout << "got data" ;
-			char img_test [640*480*3];
-			for (int i = 0; i < 640*480*3;i++)
-			{
-				img_test[i] = 3 % 255;
-			}
-			base64_encode_block((const char *)captured.frame_data,640*480*3, (char*)img_out, &b64_state);
+			//~ char img_test [640*480*3];
+			//~ for (int i = 0; i < 640*480*3;i++)
+			//~ {
+				//~ img_test[i] = 3 % 255;
+			//~ }
+			base64_encode_block((const char *)captured.frame_data,640*480*3, (char*)img_out_rgb, &b64_state);
 			//~ base64_encode_block((const char *)img_test,640*480*3, (char*)img_out, &b64_state);
 
-			std::cout << "encoded data" << std::endl;
-			if ((numbytes = send(sockfd, img_out, 4*640*480, 0)) == -1) {
+			//~ std::cout << "encoded data" << std::endl;
+			if ((numbytes = send(sockfd, img_out_rgb, 4*640*480, 0)) == -1) {
 				perror("send");
 				exit(1);
 			}
 			send(sockfd,"\n", 1, 0);
-			std::cout << "sent data" ;
-			delete [] img_out;
+			std::cout << "sent rgb data" << std::endl;
 		}
+		if (captured.stream == rs::stream::depth)
+		{
+			base64_encodestate b64_state;
+			base64_init_encodestate(&b64_state);
+			base64_encode_block((const char *)captured.frame_data,640*480, (char*)img_out, &b64_state);
+			//~ std::cout << "encoded data" << std::endl;
+			if ((numbytes = send(sockfd2, img_out, 640*640, 0)) == -1) {
+				perror("send");
+				exit(1);
+			}
+			send(sockfd2,"\n", 1, 0);
+			std::cout << "sent depth data" << std::endl;
+			
+			
+			
+		}
+		
 		usleep(1000*250);
         
         //~ stbi_write_png(ss.str().data(),
@@ -342,6 +421,9 @@ int main(int argc, char *argv[]) try
 	}
     printf("wrote frames to current working directory.\n");
     close(sockfd);
+    close(sockfd2);
+    delete [] img_out_rgb;
+	delete [] img_out;
     return EXIT_SUCCESS;
 }
 catch(const rs::error & e)

@@ -62,7 +62,7 @@ var StateController = function ( dispParams ) {
 
 					position: new THREE.Vector3( 100, 100, 200 ),
 
-					color: new THREE.Color( "skyblue" ),
+					color: new THREE.Color( "red" ),
 
 				}
 			],
@@ -91,6 +91,8 @@ var StateController = function ( dispParams ) {
 	var socket = new WebSocket( "ws://localhost:8081" );
 	socket.binaryType = "arraybuffer";
 
+
+
 	socket.onopen = function () {
 
 		var openMsg = "WebSocket is opened.";
@@ -114,8 +116,37 @@ var StateController = function ( dispParams ) {
 	socket.onmessage = function ( data ) {
 			state.depth_buffer = data.data;
             state.depthBufferUpdated = true; 
+            console.log(data.data.length);
 	};
 
+
+	var socket2 = new WebSocket( "ws://localhost:8082" );
+	socket2.binaryType = "arraybuffer";
+	socket2.onopen = function () {
+
+		var openMsg = "WebSocket is opened.";
+
+		//~ socket2.send( openMsg );
+
+		console.log( openMsg );
+
+		//~ connectionMsg = "2 Connected!";
+
+	};
+
+	socket2.onclose = function () {
+
+		console.log( "WebSocket2 is closed." );
+
+		//~ connectionMsg = "Lost...";
+
+	};
+
+	socket2.onmessage = function ( data ) {
+		console.log("here");
+			//~ state.depth_buffer = data.data;
+            //~ state.depthBufferUpdated = true; 
+	};
 
 	/**
 	 * A variable to store mouse movement.
