@@ -32,6 +32,8 @@ For running on more traditional machines, the requirements are to be able to com
  
 To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/. 
  
+To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/. 
+
  
 ## Running
 First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a Waddle Dee bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
