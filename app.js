@@ -75,7 +75,7 @@ var server = net.createServer(function(socket) {
 			rgbLen += data.length;
 			rgbBufs.push(data);
 			if (rgbLen > 480*640*3) {
-			    // once we have a full frame, concatenate and send to front end	
+			    // once we have a full frame, concatenate and send to front end
                 wssConnections.forEach( function ( socket ) {
 					socket.send(Buffer.concat(rgbBufs, 480*640*3));
 					rgbBufs = [];
@@ -100,7 +100,7 @@ var server2 = net.createServer(function(socket) {
 			depthBufs.push(data);
 			if (totalLength > 640*480) {
 				wss2Connections.forEach( function ( socket ) {
-				    // once we have a full frame, concatenate and send to front end	
+				    // once we have a full frame, concatenate and send to front end
                     socket.send(Buffer.concat(depthBufs, 640*480));
 					depthBufs = [];
 					totalLength = 0;

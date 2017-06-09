@@ -38,6 +38,15 @@
 
 const int CHARS_PER_LINE = 10000000;
 
+
+
+/* begin Base64 library implementation. The Base64 library is not used, however,
+ * it was used initially for debugging and setting up the channels. Base64 allows raw bytes
+ * to be sent as ASCII strings that are universal across platforms by encoding the data
+ * in the 64 alphanumeric characters plus some symbols. However, this requires 4/3 the memory
+ * and so should only be used for debugging purposes.
+ */
+
 void base64_init_encodestate(base64_encodestate* state_in)
 {
 	state_in->step = step_A;
@@ -139,34 +148,8 @@ int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 
 
 
-
-
-
-
-
-
-
-//~ void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], int width, int height)
-//~ {
-    //~ for (int i = 0; i < width * height; ++i)
-    //~ {
-        //~ if (auto d = depth_image[i])
-        //~ {
-            //~ uint8_t v = d * 255 / std::numeric_limits<uint16_t>::max();
-            //~ rgb_image[i*3 + 0] = 255 - v;
-            //~ rgb_image[i*3 + 1] = 255 - v;
-            //~ rgb_image[i*3 + 2] = 255 - v;
-        //~ }
-        //~ else
-        //~ {
-            //~ rgb_image[i*3 + 0] = 0;
-            //~ rgb_image[i*3 + 1] = 0;
-            //~ rgb_image[i*3 + 2] = 0;
-        //~ }
-    //~ }
-//~ }
-
-
+// Convert the depth image from uint16 to uint8. While we lose precision, this saves
+// network bandwidth and also is not required for occlusion.
 void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], int width, int height)
 {
     for (int i = 0; i < width * height; ++i)
@@ -175,18 +158,15 @@ void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], i
         {
             uint8_t v = d * 255 / std::numeric_limits<uint16_t>::max();
             rgb_image[i + 0] = v;
-            //~ rgb_image[i*3 + 1] = 255 - v;
-            //~ rgb_image[i*3 + 2] = 255 - v;
         }
         else
         {
             rgb_image[i + 0] = 0;
-            //~ rgb_image[i*3 + 1] = 0;
-            //~ rgb_image[i*3 + 2] = 0;
         }
     }
 }
 
+// setup number of channels for each stream
 std::map<rs::stream,int> components_map =
 {
     { rs::stream::depth,     3  },      // RGB
@@ -196,6 +176,8 @@ std::map<rs::stream,int> components_map =
     { rs::stream::fisheye,   1  }
 };
 
+
+// easy package to access and change data
 struct stream_record
 {
     stream_record(void): frame_data(nullptr) {};
@@ -206,6 +188,8 @@ struct stream_record
     unsigned char   *   frame_data;
 };
 
+
+// networking helper function to get in_addr
 void *get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET) {
@@ -218,13 +202,15 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[]) try
 {
-	
-	
+
+
     int sockfd, numbytes, sockfd2;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-    
+
+    //================= Begin networking setup =====================
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -234,7 +220,7 @@ int main(int argc, char *argv[]) try
         return 1;
     }
 
-    // loop through all the results and connect to the first we can
+    // loop through all the results and connect to the first we can to get rgb socket
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
@@ -260,10 +246,11 @@ int main(int argc, char *argv[]) try
             s, sizeof s);
     printf("client: connecting to %s\n", s);
 
-    freeaddrinfo(servinfo); // all done with this structure
-    
-    // ====
-    
+    freeaddrinfo(servinfo);
+
+    /* First socket for RGB is now saved in sockfd */
+
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -273,7 +260,7 @@ int main(int argc, char *argv[]) try
         return 1;
     }
 
-    // loop through all the results and connect to the first we can
+    // Get second Socket for depth
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd2 = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
@@ -300,15 +287,15 @@ int main(int argc, char *argv[]) try
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
-    
-    
-    
-    //======================================================================
-    
-    
-    rs::log_to_console(rs::log_severity::warn);
-    //rs::log_to_file(rs::log_severity::debug, "librealsense.log");
 
+
+
+    //=================== End networking setup ========================
+
+
+    rs::log_to_console(rs::log_severity::warn);
+
+    // check if camera is connected!
     rs::context ctx;
     printf("There are %d connected RealSense devices.\n", ctx.get_device_count());
     if(ctx.get_device_count() == 0) return EXIT_FAILURE;
@@ -317,6 +304,10 @@ int main(int argc, char *argv[]) try
     printf("\nUsing device 0, an %s\n", dev->get_name());
     printf("    Serial number: %s\n", dev->get_serial());
     printf("    Firmware version: %s\n", dev->get_firmware_version());
+
+
+    // get what streams camera supports. This changes based on whether we are using
+    // the R200 or the SR300
 
     std::vector<stream_record> supported_streams;
 
@@ -327,64 +318,52 @@ int main(int argc, char *argv[]) try
     for (auto & stream_record : supported_streams)
         dev->enable_stream(stream_record.stream, rs::preset::best_quality);
 
-    /* activate video streaming */
+    // activate video streaming
     dev->start();
 
-    /* retrieve actual frame size for each enabled stream*/
+    // retrieve actual frame size for each enabled stream
     for (auto & stream_record : supported_streams)
         stream_record.intrinsics = dev->get_stream_intrinsics(stream_record.stream);
 
-    /* Capture 30 frames to give autoexposure, etc. a chance to settle */
+    // Capture 30 frames to give autoexposure, etc. a chance to settle
     for (int i = 0; i < 30; ++i) dev->wait_for_frames();
 
 
-	char *img_out_rgb = new char [640*480*4];
+    // Create buffers the RGB and depth images
+	char *img_out_rgb = new char [640*480*3];
 	char *img_out = new char [640*640];
 
 
+    // for testing, we use 2000 frames. If this condition is made infinite,
+    // we will stream indefinitely.
+
 	for (int test = 0; test<2000; test++)
 	{
-		
 
 
-    /* Retrieve data from all the enabled streams */
+
+    // Retrieve data from all the enabled streams
     for (auto & stream_record : supported_streams)
         stream_record.frame_data = const_cast<uint8_t *>((const uint8_t*)dev->get_frame_data(stream_record.stream));
 
-    /* Transform Depth range map into uint8 map */
+    // Transform Depth range map into uint8 map
     stream_record depth = supported_streams[(int)rs::stream::depth];
     std::vector<uint8_t> coloredDepth(depth.intrinsics.width * depth.intrinsics.height);
 
-    /* Encode depth data into color image */
+    // Encode depth data into uint8 image
     normalize_depth_to_rgb(coloredDepth.data(), (const uint16_t *)depth.frame_data, depth.intrinsics.width, depth.intrinsics.height);
 
-    /* Update captured data */
+    // Update captured data
     supported_streams[(int)rs::stream::depth].frame_data = coloredDepth.data();
 
-	
-    /* Store captured frames into current directory */
+
     for (auto & captured : supported_streams)
     {
 					std::stringstream ss;
-					
+
 
 		if (captured.stream == rs::stream::color){
-			
-			
-			base64_encodestate b64_state;
-			base64_init_encodestate(&b64_state);
-			
-			
-			//~ const uint8_t *test = (const uint8_t *) captured.frame_data;
-			//~ char img_test [640*480*3];
-			//~ for (int i = 0; i < 640*480*3;i++)
-			//~ {
-				//~ img_test[i] = 3 % 255;
-			//~ }
-			//~ base64_encode_block((const char *)captured.frame_data,640*480*3, (char*)img_out_rgb, &b64_state);
-			//~ base64_encode_block((const char *)img_test,640*480*3, (char*)img_out, &b64_state);
 
-			//~ std::cout << "encoded data" << std::endl;
 			if ((numbytes = send(sockfd, captured.frame_data, 3*640*480, 0)) == -1) {
 				perror("send");
 				exit(1);
@@ -394,36 +373,40 @@ int main(int argc, char *argv[]) try
 		}
 		if (captured.stream == rs::stream::depth)
 		{
-			base64_encodestate b64_state;
-			base64_init_encodestate(&b64_state);
-			//~ base64_encode_block((const char *)captured.frame_data,640*480, (char*)img_out, &b64_state);
-			//~ std::cout << "encoded data" << std::endl;
 			if ((numbytes = send(sockfd2, captured.frame_data, 640*480, 0)) == -1) {
 				perror("send");
 				exit(1);
 			}
 			send(sockfd2,"\n", 1, 0);
 			std::cout << "sent depth data" << std::endl;
-			
+
+            // for testing purposes, writeout depthmap so that a user can check against
+            // what is captured by the camera.
 			stbi_write_png("test_depth.png",
             captured.intrinsics.width,captured.intrinsics.height,
             1,
             captured.frame_data,
             captured.intrinsics.width  );
-			
-			
-			
 		}
-		
+
+        // in some circumstances, it is necessary to sleep in order to
+        // match the frame-rate more closely with the rendering power of the browser.
+        // This is done purely for visual appeal as it technically degrades the performance
+        // of this component.
+
 		//~ usleep(1000*75);
-        
-        
+
+
     }
+        // wait for frames to be ready
 		dev->wait_for_frames();
 	}
-    printf("wrote frames to current working directory.\n");
+
+    // clean up
     close(sockfd);
     close(sockfd2);
+
+
     delete [] img_out_rgb;
 	delete [] img_out;
     return EXIT_SUCCESS;
