@@ -36,6 +36,8 @@ To install the node requisites, run ‘npm install’ in the main directory with
 ## Running
 First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a [Waddle Dee](http://kirby.wikia.com/wiki/Waddle_Dee) bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./test_executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
 
+The main functionality is contained within the following source files: app.js runs the node server; render.html, StandardRenderer.js, StateController.js run the front end and rendering; and the C++ code is within cpp-headless.cpp and serverside.c. 
+
 ## Code Breakdown
 ### Camera Operation and Capture
  
