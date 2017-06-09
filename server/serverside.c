@@ -13,9 +13,12 @@
 
 #include <arpa/inet.h>
 #define IMAGE_SIZE (640*480*3)
-#define PORT "3490" // the port client will be connecting to
+#define PORT "3490" // the port RGB client will be connecting to
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once
+
+// Whether or not we should use base64
+#define USE_BASE64 0
+
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -29,28 +32,18 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[])
 {
-	base64_encodestate b64_state;
-	base64_init_encodestate(&b64_state);
-    int sockfd, numbytes;
-    char buf[MAXDATASIZE];
+    base64_encodestate b64_state;
+    base64_init_encodestate(&b64_state);
+    int sockfd, numbytes, sockfd2;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-
-    if (argc != 2) {
-        fprintf(stderr,"usage: client hostname value channels\n");
-        exit(1);
-    }
-
-    // for (int iterator_i = 0; iterator_i < 2; iterator_i++)
-    // {
-
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(argv[1], "3490", &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -81,31 +74,63 @@ int main(int argc, char *argv[])
             s, sizeof s);
     printf("client: connecting to %s\n", s);
 
-    freeaddrinfo(servinfo); // all done with this structure
+    freeaddrinfo(servinfo);
 
-    char *test = "this is a test message\n";
+    // Get second socket with port 3491
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-    uint8_t img_test[IMAGE_SIZE];
-
-    for (int i = 0; i < IMAGE_SIZE; i++)
-    {
-        img_test[i] = i % 255;
+    if ((rv = getaddrinfo(argv[1], "3491", &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
     }
 
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd2 = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+
+        if (connect(sockfd2, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd2);
+            perror("client: connect");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to connect\n");
+        return 2;
+    }
+
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+            s, sizeof s);
+    printf("client: connecting to %s\n", s);
+
+    freeaddrinfo(servinfo); // all done with this structure
+
+    // have first socket for rgb stored in sockfd and
+    // second socket for depth in sockfd2
+
+
+    // for use with base64
+    // NOTE: Base64 encoding requires 4/3 the amount of memory to encode the data
+#if USE_BASE64
     uint8_t img_out[4*640*480];
-
-
     printf("%d", base64_encode_block((const char *)img_test, IMAGE_SIZE, (char*)img_out, &b64_state));
-
     base64_decodestate outstate;
     base64_init_decodestate(&outstate);
     uint8_t img_decoded[3*640*480];
     base64_decode_block((const char*)img_out, 4*640*480, (char*)img_decoded, &outstate);
 
-    // printf("%s\n", img_decoded);
+    // double-check base64 encoding
     for (int i = 0; i < IMAGE_SIZE; i++)
     {
-        // img_test[i] = i % 255;
         if (img_test[i] != img_decoded[i])
             printf("incorrect at %d: %d \n", i, img_decoded[i]);
     }
@@ -115,12 +140,48 @@ int main(int argc, char *argv[])
         exit(1);
     }
     send(sockfd, "\n", 1, 0);
+#endif
 
-    printf("sent %d\n", numbytes);
+    // test RGB pattern
+    uint8_t img_test[IMAGE_SIZE];
+    for (int i = 0; i < IMAGE_SIZE; i++)
+    {
+        img_test[i] = i % 255;
+    }
+    // send RGB pattern
+    if ((numbytes = send(sockfd, img_test, 3*640*480, 0)) == -1) {
+        perror("send");
+        exit(1);
+    }
+    send(sockfd, "\n", 1, 0);
 
 
+    // Generate example depth data: the Waddle Dee will be occluded
+    // in the bottom half of the screen
+    uint8_t img_depth[640*480];
+    for (int i = 0; i < 240*640; i++)
+    {
+        img_depth[i] = 20;
+    }
+
+    for (int i = 240*640; i < 480*640; i++)
+    {
+        img_depth[i] = 255;
+    }
+
+
+    if ((numbytes = send(sockfd2, img_depth, 1*640*480, 0)) == -1) {
+        perror("send");
+        exit(1);
+    }
+    send(sockfd2, "\n", 1, 0);
+
+
+    // cleanup
     close(sockfd);
-	// }
+    close(sockfd2);
+
+
     return 0;
 }
 
