@@ -25,16 +25,16 @@ The code is broken into three primary partitions: C++ and kernel interfaces to t
  
  
 ## Setup
-If running on the Jetson TX1, move the zImage and Image to the boot directory, and restart the machine for the images to take effect. 
+If running on the Jetson TX1, move the zImage and Image to the boot directory, and restart the machine for the images to take effect. We include all binaries that are intended for the Jetson TX1, as well as the source.
  
-For running on more traditional machines, the requirements are to be able to compile a C/C++ application and to have a WebGL compatible browser. The test application will open sockets on ports 3490, 3491, 8080, 8081, and 8082. Please make sure nothing else is running and using those ports.
+For running on more traditional machines, the requirements are to be able to compile a C/C++ application and to have a WebGL compatible browser. The test application will open sockets on ports 3490, 3491, 8080, 8081, and 8082. Please make sure nothing else is running and using those ports. A Makefile is included for the test executable.
  
  
 To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/.
 
  
 ## Running
-First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a [Waddle Dee](http://kirby.wikia.com/wiki/Waddle_Dee) bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
+First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a [Waddle Dee](http://kirby.wikia.com/wiki/Waddle_Dee) bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./test_executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
 
 ## Code Breakdown
 ### Camera Operation and Capture
@@ -52,6 +52,8 @@ In order to achieve maximal performance, the C++ code relies on UNIX domain sock
 Once connected, the application grabs a set of frames (RGB + depth) from the camera, and transmits them over separate sockets to the node server. This transfer is on the order of 1MB per set of frames, so future users should take care to ensure that the network and memory subsystem is capable of handling this load. 
  
 We include a base64 encoding library for debugging purposes. Base64 maps byte-representable data (0-255) into 64 ASCII characters that are universally available. If users have issues with connecting or viewing the stream of data, it is recommended to use the base64 library and convert the raw stream into a string. The data can be decoded at the destination. This is inherently slow, however, and should be used only as a debugging tool.
+
+The test executable will stream one frame of RGB and one frame of depth to the browser. The RGB image is a simple gradient, with the pixel value equal to the index modulo 255. The depth image will occlude the Waddle Dee at the bottom of the screen.
 
 
 ### Node Server
