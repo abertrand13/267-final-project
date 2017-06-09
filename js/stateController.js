@@ -118,12 +118,9 @@ var StateController = function ( dispParams ) {
 	};
 
 	socket.onmessage = function ( data ) {
-		//~ console.log(data);
-			//~ console.log(data.data.byteLength);
-			//~ console.log(data.data.length);
-			state.rgbBuffer = data.data;
-            state.rgbBufferUpdated = true; 
-            //~ console.log(data.data.length);
+        // keep track of when we've updated for the front end 
+        state.rgbBuffer = data.data;
+        state.rgbBufferUpdated = true; 
 	};
 
 
@@ -133,28 +130,17 @@ var StateController = function ( dispParams ) {
 
 		var openMsg = "WebSocket is opened.";
 
-		//~ socket2.send( openMsg );
-
 		console.log( openMsg );
-
-		//~ connectionMsg = "2 Connected!";
-
 	};
 
 	socket2.onclose = function () {
 
 		console.log( "WebSocket2 is closed." );
-
-		//~ connectionMsg = "Lost...";
-
 	};
 
 	socket2.onmessage = function ( data ) {
-			
-			
-			state.depthBuffer = data.data;
-			
-            state.depthBufferUpdated = true; 
+        state.depthBuffer = data.data;
+        state.depthBufferUpdated = true; 
 	};
 
 	/**
