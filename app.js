@@ -1,6 +1,7 @@
 var express = require('express');
 var path = require('path');
 var split = require('split');
+var net = require('net');
 
 var app = express();
 app.use("/css", express.static(__dirname + '/css'));
@@ -11,16 +12,13 @@ app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname + '/render.html'));
 });
 
-
 app.listen(3000, function() {
     console.log('Listening on port 3000');
 });
 
-
 var WebSocketServer = require("ws").Server;
 var wss = new WebSocketServer( {port: 8081});
 var wssConnections = [];
-
 
 
 /* Event listner of the WebSocketServer.*/
@@ -41,8 +39,6 @@ wss.on( "connection", function ( client ) {
 	} );
 
 } );
-
-
 
 
 var wss2 = new WebSocketServer( {port: 8082});
@@ -67,23 +63,20 @@ wss2.on( "connection", function ( client ) {
 } );
 
 
-var net = require('net');
 
+// Establish socket for camera image data
 var rgbBufs = [];
 var rgbLen = 0;
 var server = net.createServer(function(socket) {
 	socket.binaryType = "arraybuffer";
-	//~ var stream = socket.pipe(split());
 	socket.on("data", function(data){
-		
 		if (data.length > 0)
 		{
-			
 			rgbLen += data.length;
 			rgbBufs.push(data);
 			if (rgbLen > 480*640*3) {
-				
-				wssConnections.forEach( function ( socket ) {
+			    // once we have a full frame, concatenate and send to front end	
+                wssConnections.forEach( function ( socket ) {
 					socket.send(Buffer.concat(rgbBufs, 480*640*3));
 					rgbBufs = [];
 					rgbLen = 0;
@@ -91,40 +84,30 @@ var server = net.createServer(function(socket) {
 			}
 		}
 	});
-
 });
 
 
 
+// Establish socket to for camera depth data
 var depthBufs = [];
 var server2 = net.createServer(function(socket) {
 	socket.binaryType = "arraybuffer";
-	//~ var stream = socket.pipe(split());
 	var totalLength = 0;
 	socket.on("data", function(data){
-		//~ console.log(data);
-		
-		
-		
 		if (data.length > 0)
 		{
 			totalLength += data.length;
 			depthBufs.push(data);
-			//~ console.log(data.length);
 			if (totalLength > 640*480) {
-				
 				wss2Connections.forEach( function ( socket ) {
-					
-					socket.send(Buffer.concat(depthBufs, 640*480));
+				    // once we have a full frame, concatenate and send to front end	
+                    socket.send(Buffer.concat(depthBufs, 640*480));
 					depthBufs = [];
 					totalLength = 0;
-
-
 				} );
 			}
 		}
 	});
-
 });
 
 

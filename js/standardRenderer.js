@@ -83,18 +83,20 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 	gridScene.background = new THREE.Color("gray");
 	var grid = new THREE.GridHelper( 500, 10, "white", "white" );
 
+    // add ambient light to illuminate the waddle dees 
     var light2 = new THREE.AmbientLight(0xffffff, .8);
     light2.position.set(0,10,0);
     gridScene.add(light2);
 	
-    /* ALEX  AROUND HERE */ 
-	var imageWidth = 640;
+    // parameters	
+    var imageWidth = 640;
 	var imageHeight = 480;
 	
-	var coarseness = 20;
+	var coarseness = 20; // number of occlusion blocks to overlay the image with
 	var blockWidth = imageWidth / coarseness;
 	var blockHeight = imageHeight / coarseness; 
 	
+    // create plane to texture with data
     var temp = Array(640*480*3).fill(0);
     var dataTexture = new THREE.DataTexture(
             Uint8Array.from(temp),
@@ -122,7 +124,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
     light.position.set(0,10,0);
     teapotScene.add(light); 
 
-	/* Scene swithcing system */
+	/* Scene switching system */
 	const TEAPOT_SCENE = 0;
 
 	const GRID_SCENE = 1;
@@ -131,10 +133,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	var sceneSwitcher = GRID_SCENE;
 
-    /*Adding in our stuff*/
-     
-    // Adding in the occluding blocks
-    //~ addOccludingBlock();
+    // add occluding blocks 
     var occludingBlocks = [];
     addBlocksToScene();
 	console.log(occludingBlocks);
@@ -163,10 +162,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 		}
 
-        //~ if( e.which === 87 ) {
-            //~ addWaddleDee();
-            //~ addOccludingBlock();
-        //~ }
+        if( e.which === 85 ) {
+            addWaddleDee();
+            addOccludingBlock();
+        }
         
         if (e.which === 84) {
 			toggleBlue();
@@ -231,8 +230,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 		}
 
-        /* UPDATE WADDLE DEE */
-        // consider moving this to the right structure (see render.js)
+        /* Update Waddle Dee position */
         for(var i = 0;i < waddleDees.length; i++) {
             var curr = waddleDees[i];
             curr.obj.position.x += curr.vx;
@@ -315,13 +313,10 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 
 	};
 
+    // update background plane with image 
     function updateDataTexture() {
     	if(sc.state.rgbBuffer.byteLength != 0 && sc.state.rgbBufferUpdated) {
-            //~ var split = sc.state.rgbBuffer.split("");
             var dataArray = new Uint8Array(sc.state.rgbBuffer);
-            //~ console.log("data arryay length", dataArray.length);
-            //~ console.log("data arrya byte length", dataArray.byteLength);
-            //~ console.log("data raarrya buffer", dataArray.buffer);
             const dataTexture2 = new THREE.DataTexture(
                 dataArray,
                 imageWidth,
@@ -337,40 +332,19 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
         }
     }
    	
-	
- 
-
-    
-    function averageDepthValues(x, y, dataArray) {
-		var sum = 0;
-		for (var i = 0; i < 24; i++) {
-			for (var j = 0; j < 32; j++) {
-				// this is wrong
-				sum += 4*dataArray[y*32 + x*24+ j + 24*i];
-			}
-		}
-		
-		//~ console.log(sum);
-		console.log(sum/(24*32));
-		return sum / (24*32);
-	}
-    
+	 
+    // update array of occluding blocks to be at the proper position 
     function updateDepthArray() {
 		if (sc.state.depthBuffer.length != 0 && sc.state.depthBufferUpdated) {
-			//~ var split = sc.state.depthBuffer.split("");
 			
             var dataArray = new Uint8Array(sc.state.depthBuffer);
-			//~ var depthArray = new Uint8Array(400);
 			for (var i = 0; i < coarseness; i++)
 			{
 				for (var j = 0; j < coarseness; j++)
 				{
 					var thisBlock = occludingBlocks[i*coarseness + j];
-					//~ thisBlock.position.z = 2*(65-averageDepthValues(i, j, dataArray)) -45;
 					var centerDepth = dataArray[i*blockHeight*imageWidth + blockHeight/2*imageWidth + j*blockWidth + blockWidth/2];
 					thisBlock.position.z = (centerDepth == 0) ? -250 : (centerDepth < 30) ? -240 : -250;
-					//~ console.log("z pos", thisBlock.position.z);
-					//~ console.log(thisBlock.position.z);
 					thisBlock.needsUpdate = true;
 				}
 			}
@@ -414,21 +388,15 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
 		
 	}
 	
-      function toggleBlue () {
-		for (var i = 0; i < coarseness; i++)
-			{
-				for (var j = 0; j < coarseness; j++)
-				{
-					var thisBlock = occludingBlocks[i*coarseness + j];
-					thisBlock.material.colorWrite = !thisBlock.material.colorWrite;
-					thisBlock.material.needsUpdate = true;
-					//~ thisBlock.position.z = 2*(65-averageDepthValues(i, j, dataArray)) -45;
-					//~ console.log("z pos", thisBlock.position.z);
-					//~ console.log(thisBlock.position.z);
-					//~ thisBlock.needsUpdate = true;
-				}
-			} 
-		
+    // Occluding blocks are blue - toggle them to make them show up 
+    function toggleBlue () {
+        for (var i = 0; i < coarseness; i++) {
+            for (var j = 0; j < coarseness; j++) {
+                var thisBlock = occludingBlocks[i*coarseness + j];
+                thisBlock.material.colorWrite = !thisBlock.material.colorWrite;
+                thisBlock.material.needsUpdate = true;
+            }
+        }
 	}
     
     
@@ -451,10 +419,7 @@ var StandardRenderer = function ( webglRenderer, teapots, sc, dispParams ) {
                     obj: object,
                     vx: Math.random() * 3,
                     vy: Math.random() * 3,
-                    vz: 0//Math.random() * 5
-                    /*vx: 0,
-                    vy: 0,
-                    vz: 0*/
+                    vz: 0
                 });
             });
         });
