@@ -30,13 +30,11 @@ If running on the Jetson TX1, move the zImage and Image to the boot directory, a
 For running on more traditional machines, the requirements are to be able to compile a C/C++ application and to have a WebGL compatible browser. The test application will open sockets on ports 3490, 3491, 8080, 8081, and 8082. Please make sure nothing else is running and using those ports.
  
  
-To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/. 
- 
-To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/. 
+To install the node requisites, run ‘npm install’ in the main directory with app.js. The provided package.json file will automatically install the node dependencies. An executable of node for AARCH64 (64-bit ARMv8) based machines is included in the directory. Please use the latest version of node compatible with your machine architecture. The latest executables can be found at https://nodejs.org/en/.
 
  
 ## Running
-First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a Waddle Dee bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
+First, the node server must be started: run ‘node app.js’. Once the node server has started, open a WebGL compatible browser and navigate to localhost:8080. The page should render, and you will see a [Waddle Dee](http://kirby.wikia.com/wiki/Waddle_Dee) bouncing on top of a black image. Next, navigate to either the test_executable app or the cpp_headless application depending on the target machine. The executable is run at the commandline as follows: ‘./executable localhost’. It takes as argument the server that it should connect to, in this case localhost as everything is run locally. However, this can be extended in the future to connect to arbitrary devices.
 
 ## Code Breakdown
 ### Camera Operation and Capture
@@ -48,7 +46,7 @@ As stated in the overview, the Jetson TX1 is not compatible with librealsense ou
  
 We also provide a script to install librealsense on the Jetson TX1. However, it should be noted that this script will NOT work on any machine that is not the TX1 or running similar architecture. Additional patches to librealsense are required to set up the proper udev permissions, as these are different for different kernel versions. Librealsense assumes the latest Linux kernel, but this is not supported by the Jetson TX1, thus a few changes are made to ensure that this will install.
  
-
+#### C++ Application
 In order to achieve maximal performance, the C++ code relies on UNIX domain sockets to communicate with the node.js server. While originally our plan was to rely on file I/O to transfer data between the camera and node.js server, the framerates are unacceptably low for user interaction. To alleviate this problem, we use the TCP/IP network stack in the kernel with the C socket API. The C++ application is a client: it assumes a known port number and attempts to connect to the locally running node server. 
  
 Once connected, the application grabs a set of frames (RGB + depth) from the camera, and transmits them over separate sockets to the node server. This transfer is on the order of 1MB per set of frames, so future users should take care to ensure that the network and memory subsystem is capable of handling this load. 
@@ -56,7 +54,7 @@ Once connected, the application grabs a set of frames (RGB + depth) from the cam
 We include a base64 encoding library for debugging purposes. Base64 maps byte-representable data (0-255) into 64 ASCII characters that are universally available. If users have issues with connecting or viewing the stream of data, it is recommended to use the base64 library and convert the raw stream into a string. The data can be decoded at the destination. This is inherently slow, however, and should be used only as a debugging tool.
 
 
-#### Node Server
+### Node Server
 The camera captures image and depth data and sends it to a server via a websocket. This server is runs locally on Node.js and essentially acts as a piece of middleware between the camera and the client side. Minimal data processing is done here; for the most part data just goes in and out. The notable exception to this is that the node server is responsible for concatenating the data chunks that correspond to a single frame. Packets come in at sizes of up to 65536 bytes and must be aggregated in groups to compose the full data for a given image.
 
 Once the server has received enough image data to comprise a full frame it sends it via (another socket) to the client side. This will be where most of the relevant processing happens.
